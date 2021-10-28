@@ -1,0 +1,26 @@
+.search-input {
+  label {
+    cursor: pointer;
+    display: block;
+    text-transform: uppercase;
+  }
+  input {
+    height: 40px;
+    outline: none;
+    margin: 10px 0;
+    padding: 0 10px;
+    cursor: pointer;
+    border: 3px solid #1e4dd8;
+    border-radius: 10px;
+    transition: all 0.3s ease-in-out;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+    &:focus {
+      background-color: rgb(223, 223, 223);
+      border: 3px solid #0f36ad;
+      transform: scale(1.1);
+    }
+  }
+}

@@ -1,0 +1,19 @@
+.custom-button {
+  padding: 10px 30px;
+  border-radius: 10px;
+  border: 2px solid white;
+  cursor: pointer;
+  background-color: #1e4dd8;
+  color: white;
+  font-family: inherit;
+
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    border: 2px solid #1e4dd8;
+    color: #1e4dd8;
+    background-color: white;
+    font-weight: bold;
+    transform: scale(1.1);
+  }
+}
