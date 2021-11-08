@@ -6,7 +6,7 @@ export const openWebSocketForCryptoPair = (
 ) => {
   // check not to open web socket to already existing crypto pair
   if (
-    Object.keys(cryptoData[marketName]).filter((cp) => cp == cryptoPair)
+    Object.keys(cryptoData[marketName]).filter((cp) => cp === cryptoPair)
       .length > 0
   ) {
     return;

@@ -18,14 +18,12 @@ export class CryptoStore {
 
   updateCryptoPairInMarket(marketName, cryptoPair, newPrice) {
     this.cryptoData[marketName][cryptoPair] = newPrice;
-    console.log("updated state => ", this.cryptoData);
   }
   getCryptoData() {
     return this.cryptoData;
   }
   setCryptoData(newCryptoData) {
     this.cryptoData = newCryptoData;
-    console.log("new crypto data => ", this.cryptoData);
   }
 }
 

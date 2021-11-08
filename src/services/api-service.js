@@ -13,7 +13,7 @@ const queryCcxtData = async (market, cryptoPair) => {
     const { last } = await exchangeClass.fetchTicker(cryptoPair);
     return last;
   } catch (e) {
-    return `${market} does not contain ${cryptoPair}`;
+    return `${market} market does not contain ${cryptoPair}`;
   }
 };
 
