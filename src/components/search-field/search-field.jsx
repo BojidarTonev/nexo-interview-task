@@ -1,52 +1,27 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useContext } from "react";
+import { openWebSocketForCryptoPair } from "../../utils/utils";
 import { SearchInput } from "../search-input/search-input";
 import { CustomButton } from "../custom-button/custom-button";
 import { LoadingSpinner } from "../loading-spinner/loading-spinner";
 import { getCcxtData } from "../../services/api-service";
+import { cryptoContext } from "../../store/crypto-store";
 import "./search-field.scss";
 
 const FROM_FIELD = "from";
 const TO_FIELD = "to";
 
-const openWebSocketForCryptoPair = (
-  cryptoPair,
-  cryptoData,
-  marketName,
-  receiveNewCryptoPrice
-) => {
-  // check not to open web socket to already existing crypto pair
-  if (
-    Object.keys(cryptoData[marketName]).filter((cp) => cp == cryptoPair)
-      .length > 0
-  ) {
-    return;
-  }
-  const normalizedCryptoPair = cryptoPair.toLowerCase().replace("/", "");
-  const socket = new WebSocket(
-    `wss://stream.binance.com:9443/ws/${normalizedCryptoPair}@miniTicker`
-  );
-  socket.onmessage = function (event) {
-    const parsedDataPrice = JSON.parse(event.data).c;
-    receiveNewCryptoPrice(parsedDataPrice, marketName, cryptoPair, cryptoData);
-  };
-};
-
 export const SearchField = (props) => {
-  const { setData, cryptoMarkets, cryptoData } = props;
+  const { cryptoMarkets, cryptoData } = props;
   // based on the content of this array, will render input fields and store their value in current state as KVPs
   const fieldsArr = [FROM_FIELD, TO_FIELD];
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [values, setValues] = useState({ [FROM_FIELD]: "", [TO_FIELD]: "" });
 
-  const receiveNewCryptoPrice = (
-    cryptoPrice,
-    marketName,
-    cryptoPair,
-    cryptoData
-  ) => {
-    cryptoData[marketName][cryptoPair] = cryptoPrice;
-    setData({ ...cryptoData });
+  const cryptoStore = useContext(cryptoContext);
+
+  const onReceivedNewCryptoPrice = (cryptoPrice, marketName, cryptoPair) => {
+    cryptoStore.updateCryptoPairInMarket(marketName, cryptoPair, cryptoPrice);
   };
 
   const requestAndSetCryptoData = async (from, to) => {
@@ -69,7 +44,7 @@ export const SearchField = (props) => {
         Object.keys(recievedData)[0],
         cryptoData,
         platformName,
-        receiveNewCryptoPrice
+        onReceivedNewCryptoPrice
       );
       if (recievedData.error) {
         // keep already present data in state and display error message
@@ -88,7 +63,7 @@ export const SearchField = (props) => {
     }, {});
 
     setIsLoading(false);
-    setData(result);
+    cryptoStore.setCryptoData(result);
   };
 
   const submitRequest = async (e) => {

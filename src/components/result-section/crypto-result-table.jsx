@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { observer } from "mobx-react";
 
 const ASCENDING = "ASCENDING";
 const DESCENDING = "DESCENDING";
 
-export const CryptoResultTable = (props) => {
+export const CryptoResultTable = observer((props) => {
   const { data, marketName } = props;
   const [sortingOrder, setSortingOrder] = useState(ASCENDING);
   const [internalData, setInternalData] = useState();
@@ -68,4 +69,4 @@ export const CryptoResultTable = (props) => {
       </tbody>
     </table>
   );
-};
+});
