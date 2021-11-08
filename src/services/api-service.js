@@ -1,6 +1,4 @@
-import { BINANCE, HUOBI } from "../constants";
-import { getBinanceData } from "./binance-requester";
-import { getHuobiData } from "./huobi-service";
+import ccxt from "ccxt";
 
 const aggregateData = (data) => {
   return data.reduce((acc, item) => {
@@ -9,30 +7,39 @@ const aggregateData = (data) => {
   }, {});
 };
 
-export const getData = async (market, from, to, data) => {
-  switch (market) {
-    case BINANCE:
-      return await singleRequest(market, from, to, data, getBinanceData);
-    case HUOBI:
-      return await singleRequest(market, from, to, data, getHuobiData);
-    default:
+const queryCcxtData = async (market, cryptoPair) => {
+  const exchangeClass = new ccxt[market.toLowerCase()]();
+  try {
+    const { last } = await exchangeClass.fetchTicker(cryptoPair);
+    return last;
+  } catch (e) {
+    return `${market} does not contain ${cryptoPair}`;
   }
 };
 
-const singleRequest = async (market, from, to, data, service) => {
-  // when manually added crypto pair
-  if (from) {
-    return await service(from, to);
+export const getCcxtData = async (market, from, to, cryptoData) => {
+  // manually add crypto pair
+  if (from && to) {
+    const cryptoPair = `${from}/${to}`;
+    const price = await queryCcxtData(market, cryptoPair);
+    // register the error to display it on the UI and not add it to the state
+    if (isNaN(price)) {
+      return { error: price };
+    }
+    return {
+      [cryptoPair]: price,
+    };
   }
-  // auto quering for data
-  const multipleResults = await Promise.all(
-    Object.keys(data[market]).map(async (key) => {
-      const pairs = key.split("/");
-      from = pairs[0];
-      to = pairs[1];
-      return await service(from, to);
+
+  // auto update data
+  const autoQueryResults = await Promise.all(
+    Object.keys(cryptoData[market]).map(async (cryptoPair) => {
+      const price = await queryCcxtData(market, cryptoPair);
+      return {
+        [cryptoPair]: price,
+      };
     })
   );
 
-  return aggregateData(multipleResults, data, market);
+  return aggregateData(autoQueryResults);
 };

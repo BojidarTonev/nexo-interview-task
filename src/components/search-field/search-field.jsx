@@ -2,11 +2,34 @@ import React, { useState, useEffect } from "react";
 import { SearchInput } from "../search-input/search-input";
 import { CustomButton } from "../custom-button/custom-button";
 import { LoadingSpinner } from "../loading-spinner/loading-spinner";
-import { getData } from "../../services/api-service";
+import { getCcxtData } from "../../services/api-service";
 import "./search-field.scss";
 
 const FROM_FIELD = "from";
 const TO_FIELD = "to";
+
+const openWebSocketForCryptoPair = (
+  cryptoPair,
+  cryptoData,
+  marketName,
+  receiveNewCryptoPrice
+) => {
+  // check not to open web socket to already existing crypto pair
+  if (
+    Object.keys(cryptoData[marketName]).filter((cp) => cp == cryptoPair)
+      .length > 0
+  ) {
+    return;
+  }
+  const normalizedCryptoPair = cryptoPair.toLowerCase().replace("/", "");
+  const socket = new WebSocket(
+    `wss://stream.binance.com:9443/ws/${normalizedCryptoPair}@miniTicker`
+  );
+  socket.onmessage = function (event) {
+    const parsedDataPrice = JSON.parse(event.data).c;
+    receiveNewCryptoPrice(parsedDataPrice, marketName, cryptoPair, cryptoData);
+  };
+};
 
 export const SearchField = (props) => {
   const { setData, cryptoMarkets, cryptoData } = props;
@@ -16,14 +39,24 @@ export const SearchField = (props) => {
   const [error, setError] = useState("");
   const [values, setValues] = useState({ [FROM_FIELD]: "", [TO_FIELD]: "" });
 
+  const receiveNewCryptoPrice = (
+    cryptoPrice,
+    marketName,
+    cryptoPair,
+    cryptoData
+  ) => {
+    cryptoData[marketName][cryptoPair] = cryptoPrice;
+    setData({ ...cryptoData });
+  };
+
   const requestAndSetCryptoData = async (from, to) => {
     setIsLoading(true);
     setError("");
 
     const data = await Promise.all(
-      cryptoMarkets.map(async (key) => {
+      cryptoMarkets.map(async (market) => {
         return {
-          [key]: await getData(key, from, to, cryptoData),
+          [market]: await getCcxtData(market, from, to, cryptoData),
         };
       })
     );
@@ -31,10 +64,16 @@ export const SearchField = (props) => {
     const result = data.reduce((acc, item) => {
       const platformName = Object.keys(item)[0]; //BINANCE or HUABI
       const existingData = cryptoData[platformName];
-      const currentData = Object.values(item)[0];
-      if (currentData.error) {
+      const recievedData = Object.values(item)[0];
+      openWebSocketForCryptoPair(
+        Object.keys(recievedData)[0],
+        cryptoData,
+        platformName,
+        receiveNewCryptoPrice
+      );
+      if (recievedData.error) {
         // keep already present data in state and display error message
-        setError(currentData.error);
+        setError(recievedData.error);
         acc[platformName] = {
           ...existingData,
         };
@@ -42,7 +81,7 @@ export const SearchField = (props) => {
         // set the new incoming data and keep the already present one
         acc[platformName] = {
           ...existingData,
-          ...currentData,
+          ...recievedData,
         };
       }
       return acc;
@@ -51,14 +90,6 @@ export const SearchField = (props) => {
     setIsLoading(false);
     setData(result);
   };
-
-  // make automatic request every 5 seconds to keep the displayed data up-to-date
-  useEffect(() => {
-    const interval = setInterval(() => {
-      requestAndSetCryptoData();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [cryptoData]);
 
   const submitRequest = async (e) => {
     e.preventDefault();

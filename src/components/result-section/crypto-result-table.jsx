@@ -9,7 +9,7 @@ export const CryptoResultTable = (props) => {
   const [internalData, setInternalData] = useState();
 
   useEffect(() => {
-    setInternalData(data[marketName] || {});
+    setInternalData(data[marketName]);
   }, [data, marketName]);
 
   const changeOrder = () => {
